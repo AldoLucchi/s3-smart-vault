@@ -2,7 +2,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# El bucket donde se guardarán los archivos
+# Name bucket S3
 resource "aws_s3_bucket" "smart_vault_storage" {
   bucket = "s3-smart-vault-storage-${random_id.suffix.hex}"
 }
