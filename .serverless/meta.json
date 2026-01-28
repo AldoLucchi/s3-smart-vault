@@ -1,0 +1,949 @@
+{
+  "C:\\laragon\\www\\s3-smart-vault\\serverless.yml": {
+    "versionFramework": "4.31.2",
+    "servicePath": "C:\\laragon\\www\\s3-smart-vault\\serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "s3-smart-vault",
+      "provider": {
+        "name": "aws",
+        "region": "us-east-1",
+        "architecture": "x86_64",
+        "environment": {
+          "APP_ENV": "production",
+          "APP_KEY": "base64:mR3Vq4PcFWQ4e86M9Mv651IwoElxU2JYSsjRdWC2GGs=",
+          "ASSET_URL": "https://s3-smart-vault-assets-terracreativa.s3.amazonaws.com",
+          "SESSION_DRIVER": "cookie",
+          "LOG_CHANNEL": "stderr",
+          "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+        },
+        "stage": "dev",
+        "versionFunctions": true,
+        "compiledCloudFormationTemplate": {
+          "AWSTemplateFormatVersion": "2010-09-09",
+          "Description": "The AWS CloudFormation template for this Serverless application",
+          "Resources": {
+            "WebLogGroup": {
+              "Type": "AWS::Logs::LogGroup",
+              "Properties": {
+                "LogGroupName": "/aws/lambda/s3-smart-vault-dev-web"
+              }
+            },
+            "IamRoleLambdaExecution": {
+              "Type": "AWS::IAM::Role",
+              "Properties": {
+                "AssumeRolePolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": {
+                        "Service": [
+                          "lambda.amazonaws.com"
+                        ]
+                      },
+                      "Action": [
+                        "sts:AssumeRole"
+                      ]
+                    }
+                  ]
+                },
+                "Policies": [
+                  {
+                    "PolicyName": {
+                      "Fn::Join": [
+                        "-",
+                        [
+                          "s3-smart-vault",
+                          "dev",
+                          "lambda"
+                        ]
+                      ]
+                    },
+                    "PolicyDocument": {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "logs:CreateLogStream",
+                            "logs:CreateLogGroup",
+                            "logs:TagResource"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3-smart-vault-dev*:*"
+                            }
+                          ]
+                        },
+                        {
+                          "Effect": "Allow",
+                          "Action": [
+                            "logs:PutLogEvents"
+                          ],
+                          "Resource": [
+                            {
+                              "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3-smart-vault-dev*:*:*"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "Path": "/",
+                "RoleName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "s3-smart-vault",
+                      "dev",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "lambdaRole"
+                    ]
+                  ]
+                }
+              }
+            },
+            "WebLambdaFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Code": {
+                  "ImageUri": "893159412786.dkr.ecr.us-east-1.amazonaws.com/serverless-s3-smart-vault-dev@sha256:5bd4dd2b54ab7501bed73832f5c2ad78f25995bf3e95d5c42a5a23c7043c91e2"
+                },
+                "PackageType": "Image",
+                "FunctionName": "s3-smart-vault-dev-web",
+                "MemorySize": 1024,
+                "Timeout": 28,
+                "Architectures": [
+                  "x86_64"
+                ],
+                "Environment": {
+                  "Variables": {
+                    "APP_ENV": "production",
+                    "APP_KEY": "base64:mR3Vq4PcFWQ4e86M9Mv651IwoElxU2JYSsjRdWC2GGs=",
+                    "ASSET_URL": "https://s3-smart-vault-assets-terracreativa.s3.amazonaws.com",
+                    "SESSION_DRIVER": "cookie",
+                    "LOG_CHANNEL": "stderr",
+                    "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+                  }
+                },
+                "Role": {
+                  "Fn::GetAtt": [
+                    "IamRoleLambdaExecution",
+                    "Arn"
+                  ]
+                }
+              },
+              "DependsOn": [
+                "WebLogGroup"
+              ]
+            },
+            "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI": {
+              "Type": "AWS::Lambda::Version",
+              "DeletionPolicy": "Retain",
+              "Properties": {
+                "FunctionName": {
+                  "Ref": "WebLambdaFunction"
+                },
+                "CodeSha256": "5bd4dd2b54ab7501bed73832f5c2ad78f25995bf3e95d5c42a5a23c7043c91e2"
+              }
+            },
+            "HttpApi": {
+              "Type": "AWS::ApiGatewayV2::Api",
+              "Properties": {
+                "Name": "dev-s3-smart-vault",
+                "ProtocolType": "HTTP"
+              }
+            },
+            "HttpApiStage": {
+              "Type": "AWS::ApiGatewayV2::Stage",
+              "Properties": {
+                "ApiId": {
+                  "Ref": "HttpApi"
+                },
+                "StageName": "$default",
+                "AutoDeploy": true,
+                "DefaultRouteSettings": {
+                  "DetailedMetricsEnabled": false
+                }
+              }
+            },
+            "WebLambdaPermissionHttpApi": {
+              "Type": "AWS::Lambda::Permission",
+              "Properties": {
+                "FunctionName": {
+                  "Fn::GetAtt": [
+                    "WebLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":execute-api:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":",
+                      {
+                        "Ref": "HttpApi"
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              }
+            },
+            "HttpApiIntegrationWeb": {
+              "Type": "AWS::ApiGatewayV2::Integration",
+              "Properties": {
+                "ApiId": {
+                  "Ref": "HttpApi"
+                },
+                "IntegrationType": "AWS_PROXY",
+                "IntegrationUri": {
+                  "Fn::GetAtt": [
+                    "WebLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "PayloadFormatVersion": "2.0",
+                "TimeoutInMillis": 30000
+              }
+            },
+            "HttpApiRouteDefault": {
+              "Type": "AWS::ApiGatewayV2::Route",
+              "Properties": {
+                "ApiId": {
+                  "Ref": "HttpApi"
+                },
+                "RouteKey": "$default",
+                "Target": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      "integrations",
+                      {
+                        "Ref": "HttpApiIntegrationWeb"
+                      }
+                    ]
+                  ]
+                }
+              },
+              "DependsOn": "HttpApiIntegrationWeb"
+            }
+          },
+          "Outputs": {
+            "ServerlessDeploymentBucketName": {
+              "Value": "serverless-framework-deployments-us-east-1-fb46edd0-b9e8",
+              "Export": {
+                "Name": "sls-s3-smart-vault-dev-ServerlessDeploymentBucketName"
+              }
+            },
+            "WebLambdaFunctionQualifiedArn": {
+              "Description": "Current Lambda function version",
+              "Value": {
+                "Ref": "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI"
+              },
+              "Export": {
+                "Name": "sls-s3-smart-vault-dev-WebLambdaFunctionQualifiedArn"
+              }
+            },
+            "HttpApiId": {
+              "Description": "Id of the HTTP API",
+              "Value": {
+                "Ref": "HttpApi"
+              },
+              "Export": {
+                "Name": "sls-s3-smart-vault-dev-HttpApiId"
+              }
+            },
+            "HttpApiUrl": {
+              "Description": "URL of the HTTP API",
+              "Value": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "https://",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    ".execute-api.",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ".",
+                    {
+                      "Ref": "AWS::URLSuffix"
+                    }
+                  ]
+                ]
+              },
+              "Export": {
+                "Name": "sls-s3-smart-vault-dev-HttpApiUrl"
+              }
+            }
+          }
+        },
+        "vpc": {}
+      },
+      "functions": {
+        "web": {
+          "image": "893159412786.dkr.ecr.us-east-1.amazonaws.com/serverless-s3-smart-vault-dev:latest",
+          "timeout": 28,
+          "events": [
+            {
+              "httpApi": "*",
+              "resolvedMethod": "ANY"
+            }
+          ],
+          "name": "s3-smart-vault-dev-web",
+          "package": {},
+          "memory": 1024,
+          "vpc": {},
+          "versionLogicalId": "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI"
+        }
+      },
+      "plugins": []
+    },
+    "provider": {
+      "name": "aws",
+      "region": "us-east-1",
+      "architecture": "x86_64",
+      "environment": {
+        "APP_ENV": "production",
+        "APP_KEY": "base64:mR3Vq4PcFWQ4e86M9Mv651IwoElxU2JYSsjRdWC2GGs=",
+        "ASSET_URL": "https://s3-smart-vault-assets-terracreativa.s3.amazonaws.com",
+        "SESSION_DRIVER": "cookie",
+        "LOG_CHANNEL": "stderr",
+        "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+      },
+      "stage": "dev",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "WebLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/s3-smart-vault-dev-web"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "s3-smart-vault",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3-smart-vault-dev*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3-smart-vault-dev*:*:*"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "s3-smart-vault",
+                    "dev",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "WebLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "ImageUri": "893159412786.dkr.ecr.us-east-1.amazonaws.com/serverless-s3-smart-vault-dev@sha256:5bd4dd2b54ab7501bed73832f5c2ad78f25995bf3e95d5c42a5a23c7043c91e2"
+              },
+              "PackageType": "Image",
+              "FunctionName": "s3-smart-vault-dev-web",
+              "MemorySize": 1024,
+              "Timeout": 28,
+              "Architectures": [
+                "x86_64"
+              ],
+              "Environment": {
+                "Variables": {
+                  "APP_ENV": "production",
+                  "APP_KEY": "base64:mR3Vq4PcFWQ4e86M9Mv651IwoElxU2JYSsjRdWC2GGs=",
+                  "ASSET_URL": "https://s3-smart-vault-assets-terracreativa.s3.amazonaws.com",
+                  "SESSION_DRIVER": "cookie",
+                  "LOG_CHANNEL": "stderr",
+                  "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "WebLogGroup"
+            ]
+          },
+          "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "WebLambdaFunction"
+              },
+              "CodeSha256": "5bd4dd2b54ab7501bed73832f5c2ad78f25995bf3e95d5c42a5a23c7043c91e2"
+            }
+          },
+          "HttpApi": {
+            "Type": "AWS::ApiGatewayV2::Api",
+            "Properties": {
+              "Name": "dev-s3-smart-vault",
+              "ProtocolType": "HTTP"
+            }
+          },
+          "HttpApiStage": {
+            "Type": "AWS::ApiGatewayV2::Stage",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "StageName": "$default",
+              "AutoDeploy": true,
+              "DefaultRouteSettings": {
+                "DetailedMetricsEnabled": false
+              }
+            }
+          },
+          "WebLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "WebLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationWeb": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "Fn::GetAtt": [
+                  "WebLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteDefault": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "$default",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationWeb"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationWeb"
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-us-east-1-fb46edd0-b9e8",
+            "Export": {
+              "Name": "sls-s3-smart-vault-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "WebLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI"
+            },
+            "Export": {
+              "Name": "sls-s3-smart-vault-dev-WebLambdaFunctionQualifiedArn"
+            }
+          },
+          "HttpApiId": {
+            "Description": "Id of the HTTP API",
+            "Value": {
+              "Ref": "HttpApi"
+            },
+            "Export": {
+              "Name": "sls-s3-smart-vault-dev-HttpApiId"
+            }
+          },
+          "HttpApiUrl": {
+            "Description": "URL of the HTTP API",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "HttpApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  }
+                ]
+              ]
+            },
+            "Export": {
+              "Name": "sls-s3-smart-vault-dev-HttpApiUrl"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "serviceRawFile": "service: s3-smart-vault\n\nprovider:\n  name: aws\n  region: us-east-1\n  architecture: x86_64\n  environment:\n    APP_ENV: production\n    APP_KEY: ${env:APP_KEY}\n    ASSET_URL: https://s3-smart-vault-assets-terracreativa.s3.amazonaws.com\n    SESSION_DRIVER: cookie\n    LOG_CHANNEL: stderr\n    VIEW_COMPILED_PATH: /tmp/storage/framework/views\n\nfunctions:\n  web:\n    image: 893159412786.dkr.ecr.us-east-1.amazonaws.com/serverless-s3-smart-vault-dev:latest\n    timeout: 28\n    events:\n      - httpApi: '*'\n\nplugins: []",
+    "command": [
+      "deploy"
+    ],
+    "options": {},
+    "orgId": "24b4092a-5e65-48c7-a652-88dc8c42dd24",
+    "orgName": "terracreativa",
+    "userId": "dwcx74L5CRq46ls1sn",
+    "userName": "terracreativa",
+    "serviceProviderAwsAccountId": "893159412786",
+    "serviceProviderAwsCfStackName": "s3-smart-vault-dev",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:893159412786:stack/s3-smart-vault-dev/6a0fa9c0-fc50-11f0-8fa4-0e238f217595",
+    "serviceProviderAwsCfStackCreated": "2026-01-28T13:51:15.668Z",
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": "CREATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "WebLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:us-east-1:893159412786:function:s3-smart-vault-dev-web:1",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-s3-smart-vault-dev-WebLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "HttpApiId",
+        "OutputValue": "b7gbs8aso6",
+        "Description": "Id of the HTTP API",
+        "ExportName": "sls-s3-smart-vault-dev-HttpApiId"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-framework-deployments-us-east-1-fb46edd0-b9e8",
+        "ExportName": "sls-s3-smart-vault-dev-ServerlessDeploymentBucketName"
+      },
+      {
+        "OutputKey": "HttpApiUrl",
+        "OutputValue": "https://b7gbs8aso6.execute-api.us-east-1.amazonaws.com",
+        "Description": "URL of the HTTP API",
+        "ExportName": "sls-s3-smart-vault-dev-HttpApiUrl"
+      }
+    ],
+    "compiledCloudFormationTemplate": {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "The AWS CloudFormation template for this Serverless application",
+      "Resources": {
+        "WebLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/s3-smart-vault-dev-web"
+          }
+        },
+        "IamRoleLambdaExecution": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": [
+                      "lambda.amazonaws.com"
+                    ]
+                  },
+                  "Action": [
+                    "sts:AssumeRole"
+                  ]
+                }
+              ]
+            },
+            "Policies": [
+              {
+                "PolicyName": {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "s3-smart-vault",
+                      "dev",
+                      "lambda"
+                    ]
+                  ]
+                },
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:CreateLogStream",
+                        "logs:CreateLogGroup",
+                        "logs:TagResource"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3-smart-vault-dev*:*"
+                        }
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/s3-smart-vault-dev*:*:*"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "Path": "/",
+            "RoleName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "s3-smart-vault",
+                  "dev",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  "lambdaRole"
+                ]
+              ]
+            }
+          }
+        },
+        "WebLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "ImageUri": "893159412786.dkr.ecr.us-east-1.amazonaws.com/serverless-s3-smart-vault-dev@sha256:5bd4dd2b54ab7501bed73832f5c2ad78f25995bf3e95d5c42a5a23c7043c91e2"
+            },
+            "PackageType": "Image",
+            "FunctionName": "s3-smart-vault-dev-web",
+            "MemorySize": 1024,
+            "Timeout": 28,
+            "Architectures": [
+              "x86_64"
+            ],
+            "Environment": {
+              "Variables": {
+                "APP_ENV": "production",
+                "APP_KEY": "base64:mR3Vq4PcFWQ4e86M9Mv651IwoElxU2JYSsjRdWC2GGs=",
+                "ASSET_URL": "https://s3-smart-vault-assets-terracreativa.s3.amazonaws.com",
+                "SESSION_DRIVER": "cookie",
+                "LOG_CHANNEL": "stderr",
+                "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+              }
+            },
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            }
+          },
+          "DependsOn": [
+            "WebLogGroup"
+          ]
+        },
+        "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "WebLambdaFunction"
+            },
+            "CodeSha256": "5bd4dd2b54ab7501bed73832f5c2ad78f25995bf3e95d5c42a5a23c7043c91e2"
+          }
+        },
+        "HttpApi": {
+          "Type": "AWS::ApiGatewayV2::Api",
+          "Properties": {
+            "Name": "dev-s3-smart-vault",
+            "ProtocolType": "HTTP"
+          }
+        },
+        "HttpApiStage": {
+          "Type": "AWS::ApiGatewayV2::Stage",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "StageName": "$default",
+            "AutoDeploy": true,
+            "DefaultRouteSettings": {
+              "DetailedMetricsEnabled": false
+            }
+          }
+        },
+        "WebLambdaPermissionHttpApi": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "WebLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "apigateway.amazonaws.com",
+            "SourceArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":execute-api:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":",
+                  {
+                    "Ref": "HttpApi"
+                  },
+                  "/*"
+                ]
+              ]
+            }
+          }
+        },
+        "HttpApiIntegrationWeb": {
+          "Type": "AWS::ApiGatewayV2::Integration",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "IntegrationType": "AWS_PROXY",
+            "IntegrationUri": {
+              "Fn::GetAtt": [
+                "WebLambdaFunction",
+                "Arn"
+              ]
+            },
+            "PayloadFormatVersion": "2.0",
+            "TimeoutInMillis": 30000
+          }
+        },
+        "HttpApiRouteDefault": {
+          "Type": "AWS::ApiGatewayV2::Route",
+          "Properties": {
+            "ApiId": {
+              "Ref": "HttpApi"
+            },
+            "RouteKey": "$default",
+            "Target": {
+              "Fn::Join": [
+                "/",
+                [
+                  "integrations",
+                  {
+                    "Ref": "HttpApiIntegrationWeb"
+                  }
+                ]
+              ]
+            }
+          },
+          "DependsOn": "HttpApiIntegrationWeb"
+        }
+      },
+      "Outputs": {
+        "ServerlessDeploymentBucketName": {
+          "Value": "serverless-framework-deployments-us-east-1-fb46edd0-b9e8",
+          "Export": {
+            "Name": "sls-s3-smart-vault-dev-ServerlessDeploymentBucketName"
+          }
+        },
+        "WebLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "WebLambdaVersionAq7uWYtzCj3aX5VOApxG4nm0tId5DcbPeXNpDovvDHI"
+          },
+          "Export": {
+            "Name": "sls-s3-smart-vault-dev-WebLambdaFunctionQualifiedArn"
+          }
+        },
+        "HttpApiId": {
+          "Description": "Id of the HTTP API",
+          "Value": {
+            "Ref": "HttpApi"
+          },
+          "Export": {
+            "Name": "sls-s3-smart-vault-dev-HttpApiId"
+          }
+        },
+        "HttpApiUrl": {
+          "Description": "URL of the HTTP API",
+          "Value": {
+            "Fn::Join": [
+              "",
+              [
+                "https://",
+                {
+                  "Ref": "HttpApi"
+                },
+                ".execute-api.",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix"
+                }
+              ]
+            ]
+          },
+          "Export": {
+            "Name": "sls-s3-smart-vault-dev-HttpApiUrl"
+          }
+        }
+      }
+    }
+  }
+}

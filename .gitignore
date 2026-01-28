@@ -28,6 +28,3 @@ Thumbs.db
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
-
-# Laravel
-.env
