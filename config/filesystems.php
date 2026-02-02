@@ -41,7 +41,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -56,9 +56,19 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
+            'throw' => env('AWS_THROW', false),
+            'visibility' => 'private', // Force private to avoid sending public ACLs
+            'options' => [
+                'ACL' => '', // Empty string avoids sending the x-amz-acl header
+            ],
         ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Scoped / Additional Disks
+        |--------------------------------------------------------------------------
+        | Useful for separating Glacier-bound files from regular assets.
+        */
 
     ],
 

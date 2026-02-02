@@ -1,11 +1,9 @@
 {
-    "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
         "dev": "vite",
-        "deploy-aws": "npm run build && aws s3 sync public/build s3://s3-smart-vault-assets-terracreativa/build && docker buildx build --platform linux/amd64 -t 893159412786.dkr.ecr.us-east-1.amazonaws.com/serverless-s3-smart-vault-dev:latest --provenance=false --push . && npx serverless deploy"
+        "build": "vite build"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
