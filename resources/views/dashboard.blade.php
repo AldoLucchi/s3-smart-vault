@@ -64,7 +64,7 @@
                                                                 @csrf
                                                                 <input type="hidden" name="file_key" value="{{ $file['name'] }}">
                                                                 <button type="submit" class="text-orange-600 hover:underline font-bold">
-                                                                    🔥 Request Thaw
+                                                                    🔥 Thaw
                                                                 </button>
                                                             </form>
                                                         @else
