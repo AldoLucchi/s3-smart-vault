@@ -3,6 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches: [ main ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -10,7 +11,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to Server
+      - name: Get GitHub Action IP
+        id: ip
+        uses: haythem/public-ip@v1.3.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Open SSH port in Security Group
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id sg-019c787bed8819019 \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
+      - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -21,8 +41,16 @@ jobs:
             git pull origin main
             composer install --no-interaction --prefer-dist --optimize-autoloader
             php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:clear
             npm install
             npm run build
+            php artisan config:cache
+            php artisan route:cache
+
+      - name: Close SSH port in Security Group
+        if: always() 
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id sg-019c787bed8819019 \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
