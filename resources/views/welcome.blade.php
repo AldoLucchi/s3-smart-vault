@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-900 flex items-center justify-center min-h-screen">
     <div class="text-center">
-        <h1 class="text-5xl font-bold text-white mb-8">Smart Vault</h1>
+        <h1 class="text-5xl font-bold text-white mb-8"> |Smart Vault |</h1>
         <p class="text-gray-400 mb-8">Secure, cold storage for your most important files.</p>
         
         @if (Route::has('login'))
