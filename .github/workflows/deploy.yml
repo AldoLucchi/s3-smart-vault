@@ -2,18 +2,20 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Get GitHub Action IP
+      - name: Get GitHub Action public IP
         id: ip
-        uses: haythem/public-ip@v1.2.0
+        uses: haythem/public-ip@v1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -30,7 +32,7 @@ jobs:
             --port 22 \
             --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-      - name: Deploy to Server via SSH
+      - name: Deploy to server via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -47,7 +49,7 @@ jobs:
             php artisan route:cache
 
       - name: Close SSH port in Security Group
-        if: always() 
+        if: always()
         run: |
           aws ec2 revoke-security-group-ingress \
             --group-id sg-019c787bed8819019 \
