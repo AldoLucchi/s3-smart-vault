@@ -2,22 +2,18 @@ name: Deploy to EC2
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Get runner public IPv4
+      - name: Get GitHub Action IP
         id: ip
-        run: |
-          IPV4=$(curl -4 -s https://ifconfig.me)
-          echo "ipv4=$IPV4" >> $GITHUB_OUTPUT
+        uses: haythem/public-ip@v1.2.0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -32,19 +28,18 @@ jobs:
             --group-id sg-019c787bed8819019 \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
-            --region us-east-1
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-      - name: Deploy to server via SSH
+      - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          ipv6: false
           script: |
             cd /var/www/s3-smart-vault
+            git fetch --all
+            git reset --hard origin/main
             git pull origin main
             composer install --no-interaction --prefer-dist --optimize-autoloader
             php artisan migrate --force
@@ -52,13 +47,14 @@ jobs:
             npm run build
             php artisan config:cache
             php artisan route:cache
+            php artisan view:clear
+            php artisan cache:clear
 
       - name: Close SSH port in Security Group
-        if: always()
+        if: always() 
         run: |
           aws ec2 revoke-security-group-ingress \
             --group-id sg-019c787bed8819019 \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
-            --region us-east-1
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
