@@ -30,7 +30,8 @@ jobs:
             --group-id sg-019c787bed8819019 \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
+            --region us-east-1
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@master
@@ -57,4 +58,5 @@ jobs:
             --group-id sg-019c787bed8819019 \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
+            --region us-east-1
