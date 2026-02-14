@@ -78,16 +78,16 @@
                     <table class="min-w-full w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
                                     File Name
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
                                     Size
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                                     Status
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">
                                     Actions
                                 </th>
                             </tr>
@@ -95,7 +95,7 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($vaultFiles as $file)
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900">
                                         <div class="flex items-center">
                                             <span class="mr-3 text-2xl">
                                                 @php
@@ -117,7 +117,7 @@
                                                     echo $icon;
                                                 @endphp
                                             </span>
-                                            {{ $file['name'] }}
+                                            <span class="break-words">{{ $file['name'] }}</span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -143,29 +143,29 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex items-center justify-end gap-2">
+                                        <div class="flex items-center justify-end gap-2 flex-wrap">
                                             @if($file['restoration_status'] === 'frozen')
                                                 <form action="{{ route('vault.restore') }}" method="POST" class="inline">
                                                     @csrf
                                                     <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 active:bg-orange-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-orange-600">
+                                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 active:bg-orange-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-orange-600 text-white">
                                                         🔥 Thaw
                                                     </button>
                                                 </form>
                                             @elseif($file['restoration_status'] === 'restoring')
-                                                <span class="inline-flex items-center px-4 py-2 bg-yellow-500 rounded-lg shadow-md font-semibold text-sm border border-yellow-600">
+                                                <span class="inline-flex items-center px-4 py-2 bg-yellow-500 rounded-lg shadow-md font-semibold text-sm border border-yellow-600 text-white">
                                                     ⏳ Restoring (3-5h)
                                                 </span>
                                             @elseif($file['restoration_status'] === 'restored' || $file['restoration_status'] === 'available')
                                                 <a href="{{ route('vault.download', ['file_key' => $file['name']]) }}" 
-                                                class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-blue-600">
+                                                class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-blue-600 bg-blue-500 text-white">
                                                     👁️ View/ Download
                                                 </a>
                                                 @if($file['storage_class'] === 'STANDARD' && $file['restoration_status'] === 'available')
                                                     <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                         @csrf
                                                         <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-indigo-600 active:bg-indigo-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-indigo-600">
+                                                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-indigo-600 active:bg-indigo-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-indigo-600 bg-indigo-500 text-white">
                                                             ❄️ Freeze
                                                         </button>
                                                     </form>
@@ -177,12 +177,12 @@
                                                     @csrf
                                                     @method('DELETE')
                                                     <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-red-600 active:bg-red-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-red-600">
+                                                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-red-600 active:bg-red-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-red-600 bg-red-500 text-white">
                                                         🗑️ Delete
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded-lg shadow-sm font-semibold text-sm border border-gray-400 cursor-not-allowed opacity-60 ">
+                                                <span class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded-lg shadow-sm font-semibold text-sm border border-gray-400 cursor-not-allowed opacity-60">
                                                     🗑️ Delete
                                                 </span>
                                             @endif
