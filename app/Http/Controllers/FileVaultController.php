@@ -45,7 +45,7 @@ class FileVaultController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'vault_file' => 'required|file|max:5048576' // Max per request
+            'vault_file' => 'required|file|max:5102400|extensions:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,txt,zip'  
         ]);
 
         $file = $request->file('vault_file');
