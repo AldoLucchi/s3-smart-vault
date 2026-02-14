@@ -15,9 +15,22 @@ class FileVaultController extends Controller
     public function index()
     {
         // Cache for 5 minutes to reduce S3 API calls
-        $vaultFiles = Cache::remember('s3_vault_list', 300, function () {
+        $allFiles = Cache::remember('s3_vault_list', 300, function () {
             return $this->getVaultFileList();
         });
+
+        // Paginate the results - 20 per page
+        $perPage = 20;
+        $currentPage = request()->get('page', 1);
+        $pagedData = array_slice($allFiles, ($currentPage - 1) * $perPage, $perPage);
+        
+        $vaultFiles = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData,
+            count($allFiles),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
 
         return view('dashboard', compact('vaultFiles'));
     }
@@ -28,7 +41,7 @@ class FileVaultController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'vault_file' => 'required|file|max:102400' // Max 100MB per request
+            'vault_file' => 'required|file|max:1048576' // Max 1GB per request
         ]);
 
         $file = $request->file('vault_file');
