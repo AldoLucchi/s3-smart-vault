@@ -28,7 +28,7 @@ class FileVaultController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'vault_file' => 'required|file|max:102400' // Max 100MB
+            'vault_file' => 'required|file|max:102400' // Max 100MB per request
         ]);
 
         $file = $request->file('vault_file');
@@ -139,7 +139,6 @@ class FileVaultController extends Controller
                     return back()->with('status', '⏳ Restoration in progress' . $expiryInfo . '. Refresh the page in a few minutes.');
                 }
             }
-
             // Start restoration
             $s3Client->restoreObject([
                 'Bucket' => $bucketName,

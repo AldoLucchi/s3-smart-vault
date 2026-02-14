@@ -5,45 +5,76 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            
-            <!-- Welcome Message -->
-            <div class="bg-white overflow-hidden shadow sm:rounded-lg flex justify-between">
-                <div class="p-6 text-gray-900">
-                    {{ __("You're logged in!") }}
+            <div class="flex flex-col md:flex-row w-full bg-white overflow-hidden shadow sm:rounded-lg">
+                <!-- Sección 1: Welcome -->
+                <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
+                    {{ __("You're logged in,") }} <b>{{ Auth::user()->name }}!</b>                
                 </div>
-                <!-- Upload Section -->
-                <div class="bg-white overflow-hidden shadow sm:rounded-lg">
-                    <div class="p-6">
-                        @if (session('status'))
-                            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-                                <p class="text-sm text-green-800">{{ session('status') }}</p>
-                            </div>
-                        @endif
 
-                        @if ($errors->any())
-                            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                                @foreach ($errors->all() as $error)
-                                    <p class="text-sm text-red-800">{{ $error }}</p>
-                                @endforeach
-                            </div>
-                        @endif
+                @php
+                    $totalBytes = collect($vaultFiles)->sum('size');
+                    $totalMB = round($totalBytes / 1024 / 1024, 2);
+                    $limitMB = 10240; 
+                    $percentage = min(($totalMB / $limitMB) * 100, 100);
+                    $isFull = $totalMB >= $limitMB;
+                    $barColor = $percentage >= 90 ? 'bg-red-600' : 'bg-blue-600';
+                @endphp
 
-                        <form action="{{ route('vault.upload') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
-                            @csrf
-                            <div class="relative">
-                                <input type="file" name="vault_file" required id="fileInput" class="hidden">
-                                <label for="fileInput" class="flex items-center justify-center w-full px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 cursor-pointer transition ease-in-out duration-150">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                    </svg>
-                                    <span id="buttonText">{{ __('Select File & Upload to S3') }}</span>
-                                </label>
-                                <p class="mt-2 text-xs text-gray-500 text-center" id="fileNameDisplay"></p>
-                            </div>
-                        </form>
+                <!-- Sección 2: Storage -->
+                <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-700">
+                            {{ __("Storage Used:") }} <strong>{{ $totalMB }} MB</strong> / {{ $limitMB }} MB
+                        </span>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2.5">
+                            <div class="{{ $barColor }} h-2.5 rounded-full transition-all duration-500" 
+                                style="width: {{ $percentage }}%">
+                            </div>
+                        </div>
+                        <span class="text-xs {{ $percentage >= 90 ? 'text-red-600 font-bold' : 'text-gray-500' }}">
+                            {{ round($percentage) }}%
+                        </span>
+                    </div>
+                    @if($isFull)
+                        <p class="mt-2 text-xs text-red-600 font-bold italic animate-pulse">
+                            ⚠️ {{ __("Storage limit reached. Please contact the administrator.") }}
+                        </p>
+                    @endif
+                </div>
+
+                <!-- Sección 3: Upload -->
+                <div class="w-full md:w-1/3 p-4 sm:p-6">
+                    @if (session('status'))
+                        <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                            <p class="text-sm text-green-800">{{ session('status') }}</p>
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                            @foreach ($errors->all() as $error)
+                                <p class="text-sm text-red-800">{{ $error }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <form action="{{ route('vault.upload') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+                        @csrf
+                        <div class="relative">
+                            <input type="file" name="vault_file" required id="fileInput" class="hidden">
+                            <label for="fileInput" class="flex items-center justify-center w-full px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 cursor-pointer transition ease-in-out duration-150">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <span id="buttonText">{{ __('Select File & Upload to S3') }}</span>
+                            </label>
+                            <p class="mt-2 text-xs text-gray-500 text-center" id="fileNameDisplay"></p>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -118,32 +149,32 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex items-center justify-end space-x-3">
+                                        <div class="flex items-center justify-end gap-2">
                                             @if($file['restoration_status'] === 'frozen')
                                                 <!-- File is frozen - show Thaw button -->
                                                 <form action="{{ route('vault.restore') }}" method="POST" class="inline">
                                                     @csrf
                                                     <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                    <button type="submit" class="text-orange-600 hover:text-orange-900 font-medium">
+                                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 active:bg-orange-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-orange-600">
                                                         🔥 Thaw
                                                     </button>
                                                 </form>
                                             @elseif($file['restoration_status'] === 'restoring')
                                                 <!-- File is being restored - show disabled state -->
-                                                <span class="text-yellow-600 text-xs font-medium italic">
+                                                <span class="inline-flex items-center px-4 py-2 bg-yellow-500 rounded-lg shadow-md font-semibold text-sm border border-yellow-600">
                                                     ⏳ Restoring (3-5h)
                                                 </span>
                                             @elseif($file['restoration_status'] === 'restored' || $file['restoration_status'] === 'available')
                                                 <!-- File is available - show all actions -->
                                                 <a href="{{ route('vault.download', ['file_key' => $file['name']]) }}" 
-                                                   class="text-blue-600 hover:text-blue-900 font-medium">
-                                                    Download
+                                                class="inline-flex items-center px-4 py-2 bg-blue-500 rounded-lg hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-blue-600">
+                                                    👁️ View / Download
                                                 </a>
                                                 @if($file['storage_class'] === 'STANDARD')
                                                     <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                         @csrf
                                                         <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                        <button type="submit" class="text-indigo-600 hover:text-indigo-900 font-medium">
+                                                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-500 rounded-lg hover:bg-indigo-600 active:bg-indigo-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-indigo-600">
                                                             ❄️ Freeze
                                                         </button>
                                                     </form>
@@ -152,17 +183,17 @@
 
                                             <!-- Delete button - always available except during restoration -->
                                             @if($file['restoration_status'] !== 'restoring')
-                                                <form action="{{ route('vault.delete') }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this file?');">
+                                                <form action="{{ route('vault.delete') }}" method="POST" class="inline" onsubmit="return confirm('⚠️ Are you sure you want to delete this file?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                    <button type="submit" class="text-red-600 hover:text-red-900 font-medium">
-                                                        Delete
+                                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 active:bg-red-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-red-600">
+                                                        🗑️ Delete
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="text-gray-400 font-medium cursor-not-allowed" title="Cannot delete while restoring">
-                                                    Delete
+                                                <span class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded-lg shadow-sm font-semibold text-sm border border-gray-400 cursor-not-allowed opacity-60">
+                                                    🗑️ Delete
                                                 </span>
                                             @endif
                                         </div>
