@@ -19,6 +19,10 @@ class FileVaultController extends Controller
             return $this->getVaultFileList();
         });
 
+        // Calculate total storage (needed for the storage bar)
+        $totalBytes = collect($allFiles)->sum('size');
+        $totalMB = round($totalBytes / 1024 / 1024, 2);
+
         // Paginate the results - 20 per page
         $perPage = 20;
         $currentPage = request()->get('page', 1);
@@ -32,7 +36,7 @@ class FileVaultController extends Controller
             ['path' => request()->url(), 'query' => request()->query()]
         );
 
-        return view('dashboard', compact('vaultFiles'));
+        return view('dashboard', compact('vaultFiles', 'totalMB'));
     }
 
     /**

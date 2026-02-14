@@ -13,8 +13,6 @@
                 </div>
 
                 @php
-                    $totalBytes = collect($vaultFiles)->sum('size');
-                    $totalMB = round($totalBytes / 1024 / 1024, 2);
                     $limitMB = 10240; 
                     $percentage = min(($totalMB / $limitMB) * 100, 100);
                     $isFull = $totalMB >= $limitMB;
