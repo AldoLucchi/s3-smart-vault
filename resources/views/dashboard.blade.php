@@ -24,7 +24,7 @@
                 <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-sm font-medium text-gray-700">
-                            {{ __("Storage Used:") }} <strong>{{ $totalMB }} MB</strong> / {{ $limitMB }} MB
+                            {{ __("Storage Used:") }} <strong>{{ $totalMB }} MB</strong> / <strong>{{ $limitMB }} MB</strong>
                         </span>
                     </div>
                     <div class="flex items-center gap-2">
