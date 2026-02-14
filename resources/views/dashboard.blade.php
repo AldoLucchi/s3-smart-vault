@@ -165,7 +165,7 @@
                                                     <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                         @csrf
                                                         <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-indigo-600 active:bg-indigo-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-indigo-600 bg-indigo-500 text-white">
+                                                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-blue-600 bg-blue-500 text-white">
                                                             ❄️ Freeze
                                                         </button>
                                                     </form>
