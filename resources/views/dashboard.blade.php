@@ -207,7 +207,7 @@
     </div>
 
     <!-- Footer - Full Width -->
-    <footer class="w-full bg-white border-t border-gray-200 mt-8 absolute bottom-0">
+    <footer class="w-full bg-white border-t border-gray-200 mt-8">
         <div class="py-6">
             <div class="text-center">
                 <div class="flex items-center justify-center gap-2">
