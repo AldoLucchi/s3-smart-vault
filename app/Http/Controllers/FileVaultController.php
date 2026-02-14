@@ -45,7 +45,7 @@ class FileVaultController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'vault_file' => 'required|file|max:1048576' // Max 1GB per request
+            'vault_file' => 'required|file|max:5048576' // Max per request
         ]);
 
         $file = $request->file('vault_file');
