@@ -158,7 +158,7 @@
                                                 </span>
                                             @elseif($file['restoration_status'] === 'restored' || $file['restoration_status'] === 'available')
                                                 <a href="{{ route('vault.download', ['file_key' => $file['name']]) }}" 
-                                                class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-blue-600 bg-blue-500 text-white">
+                                                class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-green-600 active:bg-green-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-green-600 bg-green-500 text-white">
                                                     👁️ View/ Download
                                                 </a>
                                                 @if($file['storage_class'] === 'STANDARD' && $file['restoration_status'] === 'available')
