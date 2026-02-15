@@ -322,7 +322,7 @@
                         S3 Smart Vault
                     </span>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Version 1.0
+                        Version 1.0.0
                     </span>
                 </div>
                 <p class="mt-2 text-xs text-gray-500">
