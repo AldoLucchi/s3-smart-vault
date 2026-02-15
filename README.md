@@ -56,6 +56,3 @@ The .github/workflows/deploy.yml workflow opens/closes port 22 by dynamic IP and
 3. Commit and run ./vendor/bin/pint for style
 4. Run composer run test
 5. Open PR
-
-## License
-MIT (see LICENSE file).
