@@ -1,57 +1,64 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# S3 Smart Vault
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Cloud storage with intelligent archiving between S3 Standard and Glacier, built with Laravel 12 and Livewire/Volt. Allows secure upload, list, archive (freeze), restore (thaw), download, and delete of files using pre-signed URLs and per-user storage quotas.
 
-## About Laravel
+## Tech stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Backend: PHP ^8.2, Laravel 12, Livewire 3, Volt 1
+- Frontend: Vite, TailwindCSS, Blade
+- Database: MySQL/MariaDB
+- Cloud: AWS SDK S3 (Flysystem), S3 Standard + Glacier
+- Cache: Redis (optional)
+- Deployment: GitHub Actions (AWS EC2, dynamic SSH)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Quick Install 
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+# Clone and set up
+git clone https://github.com/AldoLucchi/s3-smart-vault.git
+cd s3-smart-vault
+composer run setup
+```
 
-## Learning Laravel
+The setup script runs: composer install, copies .env.example, generates key, runs migrations, installs JS deps, and builds assets .
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Required environment variables
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```
+AWS_ACCESS_KEY_ID=...  
+AWS_SECRET_ACCESS_KEY=...  
+AWS_DEFAULT_REGION=us-east-1  
+AWS_BUCKET=your-bucket-name  
+  
+DB_CONNECTION=mysql  
+DB_HOST=127.0.0.1  
+DB_PORT=3306  
+DB_DATABASE=s3_smart_vault  
+DB_USERNAME=...  
+DB_PASSWORD=...
+```
 
-## Laravel Sponsors
+## Development
+```
+# Start server, queue, logs, and HMR together  
+composer run dev
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+composer run dev launches: php artisan serve, queue:listen, pail, and npm run dev in parallel .
 
-### Premium Partners
+## Deployment
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+The .github/workflows/deploy.yml workflow opens/closes port 22 by dynamic IP and uses GitHub secrets for AWS and SSH, with no hardcoded credentials.
 
 ## Contributing
+1. Fork
+2. Create branch feature/x
+3. Commit and run ./vendor/bin/pint for style
+4. Run composer run test
+5. Open PR
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
+## License
+MIT (see LICENSE file).
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
 ## License
