@@ -115,80 +115,71 @@
                                         'application/pdf',
                                         'video/mp4', 'video/webm',
                                     ]);
+                                    $status = $file->restoration_status ?? ($file->storage_class === 'STANDARD' ? 'available' : 'frozen');
                                 @endphp
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50" id="file-row-{{ $file->id }}">
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                        <div class="flex items-center">
-                                            <span class="mr-3 text-2xl">{{ $icon }}</span>
-                                            <span class="break-words">{{ $file->original_name }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-2xl">{{ $icon }}</span>
+                                            <span class="break-words file-name-{{ $file->id }}">{{ $file->original_name }}</span>
+                                            <button onclick="openRename({{ $file->id }}, '{{ addslashes($file->original_name) }}')"
+                                                class="text-gray-300 hover:text-gray-500 transition ml-1" title="Rename">
+                                                ✏️
+                                            </button>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ round($file->size / 1024 / 1024, 2) }} MB
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        @if($file->storage_class === 'STANDARD')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                ✓ Available
-                                            </span>
-                                        @elseif($file->storage_class === 'GLACIER')
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                ❄️ Frozen
-                                            </span>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm" id="status-cell-{{ $file->id }}">
+                                        @if($status === 'available')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✓ Available</span>
+                                        @elseif($status === 'frozen')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">❄️ Frozen</span>
+                                        @elseif($status === 'restoring')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 animate-pulse" data-polling="true">⏳ Restoring...</span>
+                                        @elseif($status === 'restored')
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✓ Restored</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2 flex-wrap">
 
-                                            @if($file->storage_class === 'STANDARD' && $isPreviewable)
-                                                <button onclick="openPreview({{ $file->id }}, '{{ $file->mime_type }}')"
-                                                    class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-purple-400 bg-purple-100/60 text-purple-700 shadow-sm backdrop-blur-sm hover:bg-purple-200/80 transition-all duration-300 overflow-hidden"
-                                                    data-label="Preview">
-                                                    👁️
-                                                </button>
-                                            @endif
+                                            @if($status === 'available' || $status === 'restored')
+                                                @if($isPreviewable)
+                                                    <button onclick="openPreview({{ $file->id }}, '{{ $file->mime_type }}')"
+                                                        class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-purple-400 bg-purple-100/60 text-purple-700 shadow-sm backdrop-blur-sm hover:bg-purple-200/80 transition-all duration-300 overflow-hidden"
+                                                        data-label="Preview">👁️</button>
+                                                @endif
 
-                                            @if($file->storage_class === 'STANDARD')
                                                 <form action="{{ route('vault.download') }}" method="GET" class="inline">
                                                     <input type="hidden" name="file_id" value="{{ $file->id }}">
                                                     <button type="submit"
                                                         class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-green-400 bg-green-100/60 text-green-700 shadow-sm backdrop-blur-sm hover:bg-green-200/80 transition-all duration-300 overflow-hidden"
-                                                        data-label="Download">
-                                                        ⬇️
-                                                    </button>
+                                                        data-label="Download">⬇️</button>
                                                 </form>
-                                            @endif
 
-                                            @if($file->storage_class === 'STANDARD')
                                                 <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                     @csrf
                                                     <input type="hidden" name="file_id" value="{{ $file->id }}">
                                                     <button type="submit"
                                                         class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-blue-400 bg-blue-100/60 text-blue-700 shadow-sm backdrop-blur-sm hover:bg-blue-200/80 transition-all duration-300 overflow-hidden"
-                                                        data-label="Freeze">
-                                                        ❄️
-                                                    </button>
+                                                        data-label="Freeze">❄️</button>
                                                 </form>
+
+                                                <button onclick="openShare({{ $file->id }})"
+                                                    class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-yellow-400 bg-yellow-100/60 text-yellow-700 shadow-sm backdrop-blur-sm hover:bg-yellow-200/80 transition-all duration-300 overflow-hidden"
+                                                    data-label="Share">🔗</button>
                                             @endif
 
-                                            @if($file->storage_class === 'GLACIER')
+                                            @if($status === 'frozen')
                                                 <form action="{{ route('vault.restore') }}" method="POST" class="inline">
                                                     @csrf
                                                     <input type="hidden" name="file_id" value="{{ $file->id }}">
                                                     <button type="submit"
                                                         class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-orange-400 bg-orange-100/60 text-orange-700 shadow-sm backdrop-blur-sm hover:bg-orange-200/80 transition-all duration-300 overflow-hidden"
-                                                        data-label="Thaw">
-                                                        🔥
-                                                    </button>
+                                                        data-label="Thaw">🔥</button>
                                                 </form>
-                                            @endif
-
-                                            @if($file->storage_class === 'STANDARD')
-                                                <button onclick="openShare({{ $file->id }})"
-                                                    class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-yellow-400 bg-yellow-100/60 text-yellow-700 shadow-sm backdrop-blur-sm hover:bg-yellow-200/80 transition-all duration-300 overflow-hidden"
-                                                    data-label="Share">
-                                                    🔗
-                                                </button>
                                             @endif
 
                                             <form action="{{ route('vault.delete') }}" method="POST" class="inline" onsubmit="return confirm('⚠️ Are you sure you want to delete this file?');">
@@ -197,9 +188,7 @@
                                                 <input type="hidden" name="file_id" value="{{ $file->id }}">
                                                 <button type="submit"
                                                     class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-red-400 bg-red-100/60 text-red-700 shadow-sm backdrop-blur-sm hover:bg-red-200/80 transition-all duration-300 overflow-hidden"
-                                                    data-label="Delete">
-                                                    🗑️
-                                                </button>
+                                                    data-label="Delete">🗑️</button>
                                             </form>
 
                                         </div>
@@ -207,9 +196,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-10 text-center text-sm text-gray-500">
-                                        No files found.
-                                    </td>
+                                    <td colspan="4" class="px-6 py-10 text-center text-sm text-gray-500">No files found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -267,6 +254,33 @@
                     </div>
                     <p class="text-xs text-gray-400 mt-1">Anyone with this link can download the file.</p>
                 </div>
+
+                {{-- Active links list --}}
+                <div id="activeLinksSection" class="hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-sm font-medium text-gray-700">Active links:</label>
+                    </div>
+                    <div id="activeLinksList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Rename Modal --}}
+    <div id="renameModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b">
+                <h3 class="font-semibold text-gray-800">✏️ Rename File</h3>
+                <button onclick="closeRename()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="text" id="renameInput"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    placeholder="New file name">
+                <button onclick="submitRename()"
+                    class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
+                    Rename
+                </button>
             </div>
         </div>
     </div>
@@ -278,13 +292,14 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
                 </svg>
                 <span class="text-sm font-semibold text-gray-700">S3 Smart Vault</span>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Version 2.0.0</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Version 2.1.0</span>
             </div>
             <p class="mt-2 text-xs text-gray-500">Secure cloud storage with intelligent archiving</p>
         </div>
     </footer>
 
     <script>
+        // ── Drag & Drop ──────────────────────────────────────────────────────────
         const dropZone  = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
 
@@ -322,6 +337,7 @@
             document.getElementById('uploadForm').submit();
         }
 
+        // ── Search ───────────────────────────────────────────────────────────────
         let searchTimeout;
         document.getElementById('searchInput').addEventListener('input', function () {
             clearTimeout(searchTimeout);
@@ -333,6 +349,7 @@
             }, 400);
         });
 
+        // ── Expand Buttons ───────────────────────────────────────────────────────
         document.querySelectorAll('.btn-expand').forEach(btn => {
             const label = btn.dataset.label;
             const icon  = btn.innerHTML.trim();
@@ -352,6 +369,7 @@
             });
         });
 
+        // ── Preview Modal ────────────────────────────────────────────────────────
         function openPreview(fileId, mime) {
             document.getElementById('previewModal').classList.remove('hidden');
             document.getElementById('previewContent').innerHTML = '<div class="text-gray-400 text-sm">Loading...</div>';
@@ -378,12 +396,14 @@
             document.getElementById('previewContent').innerHTML = '';
         }
 
+        // ── Share Modal ──────────────────────────────────────────────────────────
         let currentShareFileId = null;
 
         function openShare(fileId) {
             currentShareFileId = fileId;
             document.getElementById('shareLinkResult').classList.add('hidden');
             document.getElementById('shareModal').classList.remove('hidden');
+            loadActiveLinks(fileId);
         }
 
         function closeShare() {
@@ -406,27 +426,125 @@
             .then(({ link }) => {
                 document.getElementById('shareLinkInput').value = link;
                 document.getElementById('shareLinkResult').classList.remove('hidden');
+                loadActiveLinks(currentShareFileId);
             });
+        }
+
+        function loadActiveLinks(fileId) {
+            fetch(`/vault/share/links?file_id=${fileId}`)
+                .then(r => r.json())
+                .then(({ links }) => {
+                    const section = document.getElementById('activeLinksSection');
+                    const list    = document.getElementById('activeLinksList');
+
+                    const validLinks = links.filter(l => l.valid);
+
+                    if (validLinks.length === 0) {
+                        section.classList.add('hidden');
+                        return;
+                    }
+
+                    section.classList.remove('hidden');
+                    list.innerHTML = validLinks.map(link => `
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs gap-2">
+                            <span class="text-gray-500 truncate flex-1">Expires ${link.expires_at}</span>
+                            <button onclick="revokeLink(${link.id})"
+                                class="text-red-500 hover:text-red-700 font-semibold whitespace-nowrap transition">
+                                Revoke
+                            </button>
+                        </div>
+                    `).join('');
+                });
+        }
+
+        function revokeLink(linkId) {
+            if (!confirm('Revoke this link? Anyone with it will lose access.')) return;
+
+            fetch('/vault/share/revoke', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ link_id: linkId })
+            })
+            .then(r => r.json())
+            .then(() => loadActiveLinks(currentShareFileId));
         }
 
         function copyShareLink() {
             const input = document.getElementById('shareLinkInput');
-            
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(input.value);
             } else {
                 input.select();
                 document.execCommand('copy');
             }
-            
             event.target.textContent = '✓ Copied!';
             setTimeout(() => event.target.textContent = 'Copy', 2000);
         }
 
+        // ── Rename Modal ─────────────────────────────────────────────────────────
+        let currentRenameFileId = null;
+
+        function openRename(fileId, currentName) {
+            currentRenameFileId = fileId;
+            document.getElementById('renameInput').value = currentName;
+            document.getElementById('renameModal').classList.remove('hidden');
+            document.getElementById('renameInput').focus();
+        }
+
+        function closeRename() {
+            document.getElementById('renameModal').classList.add('hidden');
+            currentRenameFileId = null;
+        }
+
+        function submitRename() {
+            const newName = document.getElementById('renameInput').value.trim();
+            if (!newName) return;
+
+            fetch('/vault/rename', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ file_id: currentRenameFileId, new_name: newName })
+            })
+            .then(r => r.json())
+            .then(({ success, new_name, error }) => {
+                if (success) {
+                    document.querySelector(`.file-name-${currentRenameFileId}`).textContent = new_name;
+                    closeRename();
+                } else {
+                    alert(error || 'Rename failed.');
+                }
+            });
+        }
+
+        // ── Glacier Polling ──────────────────────────────────────────────────────
+        const hasRestoringFiles = document.querySelectorAll('[data-polling="true"]').length > 0;
+
+        if (hasRestoringFiles) {
+            const pollInterval = setInterval(() => {
+                fetch('/vault/poll-status')
+                    .then(r => r.json())
+                    .then(({ updated }) => {
+                        if (updated.length > 0) {
+                            // Reload the page to reflect new status
+                            clearInterval(pollInterval);
+                            window.location.reload();
+                        }
+                    });
+            }, 30000); // Check every 30 seconds
+        }
+
+        // ── Close modals on Escape ───────────────────────────────────────────────
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closePreview();
                 closeShare();
+                closeRename();
             }
         });
     </script>

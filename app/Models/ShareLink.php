@@ -11,10 +11,12 @@ class ShareLink extends Model
         'user_id',
         'token',
         'expires_at',
+        'revoked_at',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'revoked_at' => 'datetime',
     ];
 
     public function file()
@@ -25,5 +27,15 @@ class ShareLink extends Model
     public function isExpired(): bool
     {
         return $this->expires_at->isPast();
+    }
+
+    public function isRevoked(): bool
+    {
+        return $this->revoked_at !== null;
+    }
+
+    public function isValid(): bool
+    {
+        return !$this->isExpired() && !$this->isRevoked();
     }
 }

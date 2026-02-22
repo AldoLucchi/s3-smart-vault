@@ -60,12 +60,13 @@ class FileVaultController extends Controller
             ]);
 
             VaultFile::create([
-                'user_id'       => $userId,
-                'original_name' => $file->getClientOriginalName(),
-                's3_key'        => $s3Key,
-                'size'          => $file->getSize(),
-                'storage_class' => 'STANDARD',
-                'mime_type'     => $file->getMimeType(),
+                'user_id'            => $userId,
+                'original_name'      => $file->getClientOriginalName(),
+                's3_key'             => $s3Key,
+                'size'               => $file->getSize(),
+                'storage_class'      => 'STANDARD',
+                'mime_type'          => $file->getMimeType(),
+                'restoration_status' => 'available',
             ]);
 
             return back()->with('status', '✅ File uploaded successfully.');
@@ -95,7 +96,10 @@ class FileVaultController extends Controller
                 'MetadataDirective' => 'COPY',
             ]);
 
-            $file->update(['storage_class' => 'GLACIER']);
+            $file->update([
+                'storage_class'      => 'GLACIER',
+                'restoration_status' => 'frozen',
+            ]);
 
             return back()->with('status', '❄️ File frozen successfully.');
         } catch (Exception $e) {
@@ -128,6 +132,7 @@ class FileVaultController extends Controller
             }
 
             if ($restore && str_contains($restore, 'ongoing-request="false"')) {
+                $file->update(['restoration_status' => 'restored']);
                 return back()->with('status', '✅ File already restored! You can download it now.');
             }
 
@@ -139,6 +144,8 @@ class FileVaultController extends Controller
                     'GlacierJobParameters' => ['Tier' => 'Standard'],
                 ],
             ]);
+
+            $file->update(['restoration_status' => 'restoring']);
 
             return back()->with('status', '🔥 Restoration started. Available in 3-5 hours.');
         } catch (Exception $e) {
@@ -204,5 +211,113 @@ class FileVaultController extends Controller
         ]);
 
         return response()->json(['link' => route('share.show', $shareLink->token)]);
+    }
+
+    public function revokeShareLink(Request $request)
+    {
+        $shareLink = ShareLink::where('user_id', auth()->id())
+                              ->findOrFail($request->input('link_id'));
+
+        $shareLink->update(['revoked_at' => now()]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function shareLinks(Request $request)
+    {
+        $file = VaultFile::where('user_id', auth()->id())
+                         ->findOrFail($request->input('file_id'));
+
+        $links = ShareLink::where('vault_file_id', $file->id)
+                          ->orderBy('created_at', 'desc')
+                          ->get()
+                          ->map(fn($link) => [
+                              'id'         => $link->id,
+                              'token'      => $link->token,
+                              'expires_at' => $link->expires_at->format('M d, Y H:i'),
+                              'expired'    => $link->isExpired(),
+                              'revoked'    => $link->isRevoked(),
+                              'valid'      => $link->isValid(),
+                              'url'        => route('share.show', $link->token),
+                          ]);
+
+        return response()->json(['links' => $links]);
+    }
+
+    public function rename(Request $request)
+    {
+        $request->validate([
+            'file_id'  => 'required|integer',
+            'new_name' => 'required|string|max:255',
+        ]);
+
+        $file        = VaultFile::where('user_id', auth()->id())->findOrFail($request->input('file_id'));
+        $newName     = $request->input('new_name');
+        $originalExt = pathinfo($file->original_name, PATHINFO_EXTENSION);
+        $newExt      = pathinfo($newName, PATHINFO_EXTENSION);
+
+        // Preserve original extension if user did not include one
+        if (!$newExt || strtolower($newExt) !== strtolower($originalExt)) {
+            $newName = $newName . '.' . $originalExt;
+        }
+
+        $userId    = auth()->id();
+        $newS3Key  = "vault/{$userId}/" . $newName;
+        $s3Client  = Storage::disk('s3')->getClient();
+        $bucket    = config('filesystems.disks.s3.bucket');
+
+        try {
+            // Copy to new key
+            $s3Client->copyObject([
+                'Bucket'            => $bucket,
+                'Key'               => $newS3Key,
+                'CopySource'        => "{$bucket}/{$file->s3_key}",
+                'MetadataDirective' => 'COPY',
+            ]);
+
+            // Delete old key
+            Storage::disk('s3')->delete($file->s3_key);
+
+            // Update database
+            $file->update([
+                'original_name' => $newName,
+                's3_key'        => $newS3Key,
+            ]);
+
+            return response()->json(['success' => true, 'new_name' => $newName]);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Rename error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function pollStatus(Request $request)
+    {
+        $files = VaultFile::where('user_id', auth()->id())
+                          ->where('restoration_status', 'restoring')
+                          ->get();
+
+        $s3Client   = Storage::disk('s3')->getClient();
+        $bucketName = config('filesystems.disks.s3.bucket');
+        $updated    = [];
+
+        foreach ($files as $file) {
+            try {
+                $headObject = $s3Client->headObject([
+                    'Bucket' => $bucketName,
+                    'Key'    => $file->s3_key,
+                ]);
+
+                $restore = $headObject['Restore'] ?? null;
+
+                if ($restore && str_contains($restore, 'ongoing-request="false"')) {
+                    $file->update(['restoration_status' => 'restored']);
+                    $updated[] = $file->id;
+                }
+            } catch (Exception $e) {
+                continue;
+            }
+        }
+
+        return response()->json(['updated' => $updated]);
     }
 }

@@ -13,6 +13,7 @@ class VaultFile extends Model
         'size',
         'storage_class',
         'mime_type',
+        'restoration_status',
     ];
 
     public function user()
