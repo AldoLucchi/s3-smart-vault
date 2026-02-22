@@ -411,7 +411,14 @@
 
         function copyShareLink() {
             const input = document.getElementById('shareLinkInput');
-            navigator.clipboard.writeText(input.value);
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(input.value);
+            } else {
+                input.select();
+                document.execCommand('copy');
+            }
+            
             event.target.textContent = '✓ Copied!';
             setTimeout(() => event.target.textContent = 'Copy', 2000);
         }
