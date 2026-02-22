@@ -10,7 +10,8 @@
 
             <div class="flex flex-col md:flex-row w-full bg-white overflow-hidden shadow sm:rounded-lg">
                 <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
-                    {{ __("You're logged in,") }} <b>{{ Auth::user()->name }}!</b>
+                    {{ __("You're logged in,") }} <b>{{ Auth::user()->name }}!</b> <br>
+                    {{ __("You have,") }} <b>{{ $vaultFiles->total() }}</b class="text-blue-700"> files in your vault. <br>   
                 </div>
                 <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
                     <div class="flex items-center justify-between mb-1">
