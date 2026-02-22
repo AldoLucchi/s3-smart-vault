@@ -169,6 +169,7 @@
                                                 @if($file['storage_class'] === 'STANDARD')
                                                     <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                         @csrf
+                                                        <input type="hidden" name="file_key" value="{{ $file['name'] }}">
                                                         <button type="submit"
                                                             class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-blue-400 bg-blue-100/60 text-blue-700 shadow-sm backdrop-blur-sm hover:bg-blue-200/80 transition-all duration-300 overflow-hidden"
                                                             data-label="Freeze">
@@ -180,6 +181,7 @@
                                             @if($file['restoration_status'] === 'frozen')
                                                 <form action="{{ route('vault.restore') }}" method="POST" class="inline">
                                                     @csrf
+                                                    <input type="hidden" name="file_key" value="{{ $file['name'] }}">
                                                     <button type="submit"
                                                         class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-orange-400 bg-orange-100/60 text-orange-700 shadow-sm backdrop-blur-sm hover:bg-orange-200/80 transition-all duration-300 overflow-hidden"
                                                         data-label="Thaw">
@@ -191,6 +193,7 @@
                                                 <form action="{{ route('vault.delete') }}" method="POST" class="inline" onsubmit="return confirm('⚠️ Are you sure you want to delete this file?');">
                                                     @csrf
                                                     @method('DELETE')
+                                                        <input type="hidden" name="file_key" value="{{ $file['name'] }}">
                                                     <button type="submit"
                                                         class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-red-400 bg-red-100/60 text-red-700 shadow-sm backdrop-blur-sm hover:bg-red-200/80 transition-all duration-300 overflow-hidden"
                                                         data-label="Delete">
