@@ -160,48 +160,61 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2 flex-wrap">
-                                            @if($file['restoration_status'] === 'frozen')
-                                                <form action="{{ route('vault.restore') }}" method="POST" class="inline">
-                                                    @csrf
-                                                    <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 active:bg-orange-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-orange-600 text-white">
-                                                        🔥 Thaw
-                                                    </button>
-                                                </form>
-                                            @elseif($file['restoration_status'] === 'restoring')
-                                                <span class="inline-flex items-center px-4 py-2 bg-yellow-500 rounded-lg shadow-md font-semibold text-sm border border-yellow-600 text-white">
-                                                    ⏳ Restoring (3-5h)
-                                                </span>
-                                            @elseif($file['restoration_status'] === 'restored' || $file['restoration_status'] === 'available')
-                                                <a href="{{ route('vault.download', ['file_key' => $file['name']]) }}" 
-                                                class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-green-600 active:bg-green-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-green-600 bg-green-500 text-white">
-                                                    👁️ View/ Download
+
+                                            @if($file['restoration_status'] === 'restored' || $file['restoration_status'] === 'available')
+                                                <a href="{{ route('vault.download', ['file_key' => $file['name']]) }}"
+                                                class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-green-500 text-white font-semibold text-sm border border-green-600 shadow-md hover:bg-green-600 transition-all duration-300 overflow-hidden">
+                                                
+                                                    👁️
+                                                    <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
+                                                        View / Download
+                                                    </span>
                                                 </a>
-                                                @if($file['storage_class'] === 'STANDARD' && $file['restoration_status'] === 'available')
+
+                                                @if($file['storage_class'] === 'STANDARD')
                                                     <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                         @csrf
-                                                        <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-blue-600 bg-blue-500 text-white">
-                                                            ❄️ Freeze
+                                                        <button type="submit"
+                                                            class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-blue-500 text-white font-semibold text-sm border border-blue-600 shadow-md hover:bg-blue-600 transition-all duration-300 overflow-hidden">
+                                                            
+                                                            ❄️
+                                                            <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
+                                                                Freeze
+                                                            </span>
                                                         </button>
                                                     </form>
                                                 @endif
+                                            @endif
+
+                                            @if($file['restoration_status'] === 'frozen')
+                                                <form action="{{ route('vault.restore') }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit"
+                                                        class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-orange-500 text-white font-semibold text-sm border border-orange-600 shadow-md hover:bg-orange-600 transition-all duration-300 overflow-hidden">
+                                                        
+                                                        🔥
+                                                        <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
+                                                            Thaw
+                                                        </span>
+                                                    </button>
+                                                </form>
                                             @endif
 
                                             @if($file['restoration_status'] !== 'restoring')
                                                 <form action="{{ route('vault.delete') }}" method="POST" class="inline" onsubmit="return confirm('⚠️ Are you sure you want to delete this file?');">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <input type="hidden" name="file_key" value="{{ $file['name'] }}">
-                                                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg hover:bg-red-600 active:bg-red-700 shadow-md hover:shadow-lg transition-all duration-150 font-semibold text-sm border border-red-600 bg-red-500 text-white">
-                                                        🗑️ Delete
+                                                    <button type="submit"
+                                                        class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-red-500 text-white font-semibold text-sm border border-red-600 shadow-md hover:bg-red-600 transition-all duration-300 overflow-hidden">
+                                                        
+                                                        🗑️
+                                                        <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
+                                                            Delete
+                                                        </span>
                                                     </button>
                                                 </form>
-                                            @else
-                                                <span class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded-lg shadow-sm font-semibold text-sm border border-gray-400 cursor-not-allowed opacity-60">
-                                                    🗑️ Delete
-                                                </span>
                                             @endif
+
                                         </div>
                                     </td>
                                 </tr>
