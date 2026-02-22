@@ -78,14 +78,38 @@
                     <table class="min-w-full w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
-                                    File Name
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
+                                    <a href="{{ route('dashboard', array_merge(request()->query(), [
+                                        'sort' => 'name',
+                                        'direction' => request('sort') === 'name' && request('direction') === 'asc' ? 'desc' : 'asc'
+                                    ])) }}" class="flex items-center gap-1 hover:text-gray-700">
+                                        File Name
+                                        @if(request('sort') === 'name')
+                                            {!! request('direction') === 'asc' ? '↑' : '↓' !!}
+                                        @endif
+                                    </a>
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
-                                    Size
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                                    <a href="{{ route('dashboard', array_merge(request()->query(), [
+                                        'sort' => 'size',
+                                        'direction' => request('sort') === 'size' && request('direction') === 'asc' ? 'desc' : 'asc'
+                                    ])) }}" class="flex items-center gap-1 hover:text-gray-700">
+                                        Size
+                                        @if(request('sort') === 'size')
+                                            {!! request('direction') === 'asc' ? '↑' : '↓' !!}
+                                        @endif
+                                    </a>
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                                    Status
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                                    <a href="{{ route('dashboard', array_merge(request()->query(), [
+                                        'sort' => 'restoration_status',
+                                        'direction' => request('sort') === 'restoration_status' && request('direction') === 'asc' ? 'desc' : 'asc'
+                                    ])) }}" class="flex items-center gap-1 hover:text-gray-700">
+                                        Status
+                                        @if(request('sort') === 'restoration_status')
+                                            {!! request('direction') === 'asc' ? '↑' : '↓' !!}
+                                        @endif
+                                    </a>
                                 </th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">
                                     Actions

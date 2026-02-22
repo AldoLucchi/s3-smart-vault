@@ -12,28 +12,81 @@ class FileVaultController extends Controller
     /**
      * Display the vault dashboard with all files and their statuses.
      */
-    public function index()
+    public function index(Request $request)
     {
+        // Sorting parameters
+        $sort = $request->get('sort', 'name');
+        $direction = $request->get('direction', 'asc');
+
+        // Allowed columns for security
+        $allowedSorts = ['name', 'size', 'last_modified', 'restoration_status'];
+
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        if (!in_array($direction, ['asc', 'desc'])) {
+            $direction = 'asc';
+        }
+
         // Cache for 5 minutes to reduce S3 API calls
         $allFiles = Cache::remember('s3_vault_list', 300, function () {
             return $this->getVaultFileList();
         });
 
-        // Calculate total storage (needed for the storage bar)
+        // SORTING (before pagination)
+        $allFiles = collect($allFiles)
+            ->sort(function ($a, $b) use ($sort, $direction) {
+
+                if ($sort === 'restoration_status') {
+
+                    // Logical priority order
+                    $priority = [
+                        'restoring' => 1,
+                        'restored' => 2,
+                        'available' => 3,
+                        'frozen' => 4,
+                    ];
+
+                    $valueA = $priority[$a['restoration_status']] ?? 99;
+                    $valueB = $priority[$b['restoration_status']] ?? 99;
+
+                } else {
+
+                    $valueA = $a[$sort] ?? null;
+                    $valueB = $b[$sort] ?? null;
+                }
+
+                if ($valueA == $valueB) return 0;
+
+                if ($direction === 'asc') {
+                    return $valueA <=> $valueB;
+                }
+
+                return $valueB <=> $valueA;
+            })
+            ->values()
+            ->toArray();
+
+        // Calculate total storage
         $totalBytes = collect($allFiles)->sum('size');
         $totalMB = round($totalBytes / 1024 / 1024, 2);
 
-        // Paginate the results - 20 per page
+        // Pagination
         $perPage = 20;
-        $currentPage = request()->get('page', 1);
+        $currentPage = $request->get('page', 1);
+
         $pagedData = array_slice($allFiles, ($currentPage - 1) * $perPage, $perPage);
-        
+
         $vaultFiles = new \Illuminate\Pagination\LengthAwarePaginator(
             $pagedData,
             count($allFiles),
             $perPage,
             $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
         );
 
         return view('dashboard', compact('vaultFiles', 'totalMB'));
