@@ -11,14 +11,6 @@
                 <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
                     {{ __("You're logged in,") }} <b>{{ Auth::user()->name }}!</b>                
                 </div>
-
-                @php
-                    $limitMB = 10240; 
-                    $percentage = min(($totalMB / $limitMB) * 100, 100);
-                    $isFull = $totalMB >= $limitMB;
-                    $barColor = $percentage >= 90 ? 'bg-red-600' : 'bg-blue-600';
-                @endphp
-
                 <div class="w-full md:w-1/3 p-4 text-gray-900 sm:p-6 border-b md:border-b-0 md:border-r border-gray-200">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-sm font-medium text-gray-700">
@@ -346,7 +338,7 @@
                         S3 Smart Vault
                     </span>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Version 1.0.0
+                        Version 1.1.0
                     </span>
                 </div>
                 <p class="mt-2 text-xs text-gray-500">

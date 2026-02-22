@@ -18,7 +18,6 @@ class FileVaultController extends Controller
         $sort = $request->get('sort', 'name');
         $direction = $request->get('direction', 'asc');
 
-        // Allowed columns for security
         $allowedSorts = ['name', 'size', 'last_modified', 'restoration_status'];
 
         if (!in_array($sort, $allowedSorts)) {
@@ -40,7 +39,6 @@ class FileVaultController extends Controller
 
                 if ($sort === 'restoration_status') {
 
-                    // Logical priority order
                     $priority = [
                         'restoring' => 1,
                         'restored' => 2,
@@ -59,11 +57,9 @@ class FileVaultController extends Controller
 
                 if ($valueA == $valueB) return 0;
 
-                if ($direction === 'asc') {
-                    return $valueA <=> $valueB;
-                }
-
-                return $valueB <=> $valueA;
+                return $direction === 'asc'
+                    ? $valueA <=> $valueB
+                    : $valueB <=> $valueA;
             })
             ->values()
             ->toArray();
@@ -71,6 +67,12 @@ class FileVaultController extends Controller
         // Calculate total storage
         $totalBytes = collect($allFiles)->sum('size');
         $totalMB = round($totalBytes / 1024 / 1024, 2);
+
+        // Storage limit logic (moved from Blade)
+        $limitMB = 10240;
+        $percentage = min(($totalMB / $limitMB) * 100, 100);
+        $isFull = $totalMB >= $limitMB;
+        $barColor = $percentage >= 90 ? 'bg-red-600' : 'bg-blue-600';
 
         // Pagination
         $perPage = 20;
@@ -89,7 +91,14 @@ class FileVaultController extends Controller
             ]
         );
 
-        return view('dashboard', compact('vaultFiles', 'totalMB'));
+        return view('dashboard', compact(
+            'vaultFiles',
+            'totalMB',
+            'limitMB',
+            'percentage',
+            'isFull',
+            'barColor'
+        ));
     }
 
     /**
