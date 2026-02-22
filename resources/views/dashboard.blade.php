@@ -160,61 +160,44 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2 flex-wrap">
-
                                             @if($file['restoration_status'] === 'restored' || $file['restoration_status'] === 'available')
                                                 <a href="{{ route('vault.download', ['file_key' => $file['name']]) }}"
-                                                class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-green-500 text-white font-semibold text-sm border border-green-600 shadow-md hover:bg-green-600 transition-all duration-300 overflow-hidden">
-                                                
+                                                class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-green-400 bg-green-100/60 text-green-700 shadow-sm backdrop-blur-sm hover:bg-green-200/80 transition-all duration-300 overflow-hidden cursor-pointer"
+                                                data-label="View / Download">
                                                     👁️
-                                                    <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
-                                                        View / Download
-                                                    </span>
                                                 </a>
-
                                                 @if($file['storage_class'] === 'STANDARD')
                                                     <form action="{{ route('vault.freeze') }}" method="POST" class="inline">
                                                         @csrf
                                                         <button type="submit"
-                                                            class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-blue-500 text-white font-semibold text-sm border border-blue-600 shadow-md hover:bg-blue-600 transition-all duration-300 overflow-hidden">
-                                                            
+                                                            class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-blue-400 bg-blue-100/60 text-blue-700 shadow-sm backdrop-blur-sm hover:bg-blue-200/80 transition-all duration-300 overflow-hidden"
+                                                            data-label="Freeze">
                                                             ❄️
-                                                            <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
-                                                                Freeze
-                                                            </span>
                                                         </button>
                                                     </form>
                                                 @endif
                                             @endif
-
                                             @if($file['restoration_status'] === 'frozen')
                                                 <form action="{{ route('vault.restore') }}" method="POST" class="inline">
                                                     @csrf
                                                     <button type="submit"
-                                                        class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-orange-500 text-white font-semibold text-sm border border-orange-600 shadow-md hover:bg-orange-600 transition-all duration-300 overflow-hidden">
-                                                        
+                                                        class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-orange-400 bg-orange-100/60 text-orange-700 shadow-sm backdrop-blur-sm hover:bg-orange-200/80 transition-all duration-300 overflow-hidden"
+                                                        data-label="Thaw">
                                                         🔥
-                                                        <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
-                                                            Thaw
-                                                        </span>
                                                     </button>
                                                 </form>
                                             @endif
-
                                             @if($file['restoration_status'] !== 'restoring')
                                                 <form action="{{ route('vault.delete') }}" method="POST" class="inline" onsubmit="return confirm('⚠️ Are you sure you want to delete this file?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
-                                                        class="group inline-flex items-center px-2 py-2 w-10 rounded-lg bg-red-500 text-white font-semibold text-sm border border-red-600 shadow-md hover:bg-red-600 transition-all duration-300 overflow-hidden">
-                                                        
+                                                        class="btn-expand inline-flex items-center justify-center w-9 h-9 rounded-full border border-red-400 bg-red-100/60 text-red-700 shadow-sm backdrop-blur-sm hover:bg-red-200/80 transition-all duration-300 overflow-hidden"
+                                                        data-label="Delete">
                                                         🗑️
-                                                        <span class="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:ml-2 transition-all duration-300">
-                                                            Delete
-                                                        </span>
                                                     </button>
                                                 </form>
                                             @endif
-
                                         </div>
                                     </td>
                                 </tr>
@@ -370,6 +353,26 @@
                 document.getElementById('buttonText').textContent = 'Uploading...';
                 document.getElementById('uploadForm').submit();
             }
+        });
+
+        // Expand buttons on hover
+        document.querySelectorAll('.btn-expand').forEach(btn => {
+            const label = btn.dataset.label;
+            const icon = btn.innerHTML.trim();
+
+            btn.addEventListener('mouseenter', () => {
+                btn.style.width = 'auto';
+                btn.style.paddingLeft = '0.75rem';
+                btn.style.paddingRight = '0.75rem';
+                btn.innerHTML = `${icon} <span style="margin-left:6px;white-space:nowrap;font-size:0.8rem;font-weight:600">${label}</span>`;
+            });
+
+            btn.addEventListener('mouseleave', () => {
+                btn.style.width = '2.25rem';
+                btn.style.paddingLeft = '';
+                btn.style.paddingRight = '';
+                btn.innerHTML = icon;
+            });
         });
     </script>
 </x-app-layout>
