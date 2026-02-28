@@ -32,7 +32,7 @@ class FileVaultController extends Controller
 
         $query->orderBy($sort, $direction);
 
-        // Calculate storage metrics
+        // Calculate storage usage metrics for the UI progress bar
         $totalBytes = VaultFile::where('user_id', auth()->id())->sum('size');
         $totalMB    = round($totalBytes / 1024 / 1024, 2);
         $limitMB    = 10240; // 10GB Limit
@@ -48,7 +48,8 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Upload a file and sanitize its name to avoid S3 URL issues.
+     * Upload a new file to S3 and record it in the database.
+     * Filenames are sanitized to prevent URL issues.
      */
     public function store(Request $request)
     {
@@ -59,7 +60,7 @@ class FileVaultController extends Controller
         $file   = $request->file('vault_file');
         $userId = auth()->id();
         
-        // Sanitize filename: replace spaces with hyphens and remove special chars
+        // Sanitize filename: convert to slug to avoid spaces and special character issues in S3
         $extension = $file->getClientOriginalExtension();
         $baseName  = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
         $safeName  = $baseName . '.' . $extension;
@@ -89,7 +90,7 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Transition a file to AWS Glacier storage.
+     * Change S3 Storage Class to GLACIER to save costs.
      */
     public function freeze(Request $request)
     {
@@ -104,7 +105,7 @@ class FileVaultController extends Controller
                 return back()->with('status', '❄️ This file is already frozen.');
             }
 
-            // CopySource must be URL encoded for S3 to find keys with special characters
+            // CopySource must be manually encoded to handle spaces in existing legacy filenames
             $encodedSource = "{$bucketName}/" . str_replace('%2F', '/', rawurlencode($file->s3_key));
 
             $s3Client->copyObject([
@@ -127,7 +128,7 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Request AWS to move file from Glacier to temporary Standard storage.
+     * Request AWS to restore a file from Glacier to temporary standard access.
      */
     public function requestRestoration(Request $request)
     {
@@ -179,7 +180,7 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Generate a temporary signed URL for file download.
+     * Redirect user to a temporary signed S3 URL for downloading.
      */
     public function download(Request $request)
     {
@@ -195,7 +196,7 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Delete file from S3 and Database.
+     * Permanently delete the file from both S3 and the local database.
      */
     public function destroy(Request $request)
     {
@@ -212,7 +213,20 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Handle file renaming with S3 key synchronization.
+     * Get a signed URL for file previewing (images/PDFs).
+     */
+    public function preview(Request $request)
+    {
+        $file = VaultFile::where('user_id', auth()->id())
+                         ->findOrFail($request->input('file_id'));
+
+        $url = Storage::disk('s3')->temporaryUrl($file->s3_key, now()->addMinutes(30));
+
+        return response()->json(['url' => $url, 'mime' => $file->mime_type]);
+    }
+
+    /**
+     * Handle file renaming. Moves the object in S3 and updates the database record.
      */
     public function rename(Request $request)
     {
@@ -223,27 +237,28 @@ class FileVaultController extends Controller
 
         $file = VaultFile::where('user_id', auth()->id())->findOrFail($request->input('file_id'));
         
-        // Clean new name: preserve extension and slugify the base name
+        // Sanitize the new name and preserve original extension
         $originalExt = pathinfo($file->original_name, PATHINFO_EXTENSION);
         $newNameClean = Str::slug(pathinfo($request->input('new_name'), PATHINFO_FILENAME));
         $finalName = $newNameClean . '.' . $originalExt;
 
-        // Maintain the same directory (works for legacy 'vault/' and new 'vault/id/')
+        // Dynamic directory detection: keeps file in its current folder (root or user folder)
         $directory = dirname($file->s3_key); 
-        $newS3Key  = $directory . '/' . $finalName;
+        $newS3Key  = ($directory === '.' ? '' : $directory . '/') . $finalName;
         
         $bucket    = config('filesystems.disks.s3.bucket');
         $s3Client  = Storage::disk('s3')->getClient();
 
         try {
-            // Check if source exists to prevent NoSuchKey error
+            // Verify file exists in S3 before attempting rename
             if (!Storage::disk('s3')->exists($file->s3_key)) {
-                return response()->json(['error' => 'Source file not found in S3.'], 404);
+                return response()->json(['error' => 'Source file not found in S3 at: ' . $file->s3_key], 404);
             }
 
-            // CopySource requires proper URL encoding for keys with spaces/special characters
+            // Encode source path to handle spaces in legacy filenames
             $encodedSource = "{$bucket}/" . str_replace('%2F', '/', rawurlencode($file->s3_key));
 
+            // S3 requires Copy + Delete for renames
             $s3Client->copyObject([
                 'Bucket'            => $bucket,
                 'Key'               => $newS3Key,
@@ -265,7 +280,7 @@ class FileVaultController extends Controller
     }
 
     /**
-     * Periodic check for restoration status (Polling).
+     * API endpoint to check if Glacier restoration has finished.
      */
     public function pollStatus(Request $request)
     {
@@ -286,7 +301,7 @@ class FileVaultController extends Controller
 
                 $restore = $headObject['Restore'] ?? null;
 
-                // Check if AWS finished the restoration job
+                // If ongoing-request is false, the file is ready for download
                 if ($restore && str_contains($restore, 'ongoing-request="false"')) {
                     $file->update(['restoration_status' => 'restored']);
                     $updated[] = $file->id;
