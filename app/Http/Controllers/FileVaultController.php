@@ -11,9 +11,6 @@ use Exception;
 
 class FileVaultController extends Controller
 {
-    /**
-     * Display the vault dashboard with filtering and sorting.
-     */
     public function index(Request $request)
     {
         $sort      = $request->get('sort', 'created_at');
@@ -32,10 +29,9 @@ class FileVaultController extends Controller
 
         $query->orderBy($sort, $direction);
 
-        // Calculate storage usage metrics for the UI progress bar
         $totalBytes = VaultFile::where('user_id', auth()->id())->sum('size');
         $totalMB    = round($totalBytes / 1024 / 1024, 2);
-        $limitMB    = 10240; // 10GB Limit
+        $limitMB    = 10240;
         $percentage = min(($totalMB / $limitMB) * 100, 100);
         $isFull     = $totalMB >= $limitMB;
         $barColor   = $percentage >= 90 ? 'bg-red-600' : 'bg-blue-600';
@@ -47,10 +43,6 @@ class FileVaultController extends Controller
         ));
     }
 
-    /**
-     * Upload a new file to S3 and record it in the database.
-     * Filenames are sanitized to prevent URL issues.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -60,7 +52,6 @@ class FileVaultController extends Controller
         $file   = $request->file('vault_file');
         $userId = auth()->id();
         
-        // Sanitize filename: convert to slug to avoid spaces and special character issues in S3
         $extension = $file->getClientOriginalExtension();
         $baseName  = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
         $safeName  = $baseName . '.' . $extension;
@@ -89,9 +80,6 @@ class FileVaultController extends Controller
         }
     }
 
-    /**
-     * Change S3 Storage Class to GLACIER to save costs.
-     */
     public function freeze(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -105,7 +93,6 @@ class FileVaultController extends Controller
                 return back()->with('status', '❄️ This file is already frozen.');
             }
 
-            // CopySource must be manually encoded to handle spaces in existing legacy filenames
             $encodedSource = "{$bucketName}/" . str_replace('%2F', '/', rawurlencode($file->s3_key));
 
             $s3Client->copyObject([
@@ -127,9 +114,6 @@ class FileVaultController extends Controller
         }
     }
 
-    /**
-     * Request AWS to restore a file from Glacier to temporary standard access.
-     */
     public function requestRestoration(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -179,9 +163,6 @@ class FileVaultController extends Controller
         }
     }
 
-    /**
-     * Redirect user to a temporary signed S3 URL for downloading.
-     */
     public function download(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -195,9 +176,6 @@ class FileVaultController extends Controller
         }
     }
 
-    /**
-     * Permanently delete the file from both S3 and the local database.
-     */
     public function destroy(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -212,9 +190,6 @@ class FileVaultController extends Controller
         }
     }
 
-    /**
-     * Get a signed URL for file previewing (images/PDFs).
-     */
     public function preview(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -225,9 +200,57 @@ class FileVaultController extends Controller
         return response()->json(['url' => $url, 'mime' => $file->mime_type]);
     }
 
-    /**
-     * Handle file renaming. Moves the object in S3 and updates the database record.
-     */
+    public function createShareLink(Request $request)
+    {
+        $request->validate([
+            'file_id' => 'required|integer',
+            'hours'   => 'sometimes|integer|min:1|max:168',
+        ]);
+
+        $file = VaultFile::where('user_id', auth()->id())
+                         ->findOrFail($request->input('file_id'));
+
+        $shareLink = ShareLink::create([
+            'vault_file_id' => $file->id,
+            'user_id'       => auth()->id(),
+            'token'         => Str::random(48),
+            'expires_at'    => now()->addHours($request->input('hours', 24)),
+        ]);
+
+        return response()->json(['link' => route('share.show', $shareLink->token)]);
+    }
+
+    public function revokeShareLink(Request $request)
+    {
+        $shareLink = ShareLink::where('user_id', auth()->id())
+                              ->findOrFail($request->input('link_id'));
+
+        $shareLink->update(['revoked_at' => now()]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function shareLinks(Request $request)
+    {
+        $file = VaultFile::where('user_id', auth()->id())
+                         ->findOrFail($request->input('file_id'));
+
+        $links = ShareLink::where('vault_file_id', $file->id)
+                          ->orderBy('created_at', 'desc')
+                          ->get()
+                          ->map(fn($link) => [
+                              'id'         => $link->id,
+                              'token'      => $link->token,
+                              'expires_at' => $link->expires_at->format('M d, Y H:i'),
+                              'expired'    => $link->isExpired(),
+                              'revoked'    => $link->isRevoked(),
+                              'valid'      => $link->isValid(),
+                              'url'        => route('share.show', $link->token),
+                          ]);
+
+        return response()->json(['links' => $links]);
+    }
+
     public function rename(Request $request)
     {
         $request->validate([
@@ -237,12 +260,10 @@ class FileVaultController extends Controller
 
         $file = VaultFile::where('user_id', auth()->id())->findOrFail($request->input('file_id'));
         
-        // Sanitize the new name and preserve original extension
         $originalExt = pathinfo($file->original_name, PATHINFO_EXTENSION);
         $newNameClean = Str::slug(pathinfo($request->input('new_name'), PATHINFO_FILENAME));
         $finalName = $newNameClean . '.' . $originalExt;
 
-        // Dynamic directory detection: keeps file in its current folder (root or user folder)
         $directory = dirname($file->s3_key); 
         $newS3Key  = ($directory === '.' ? '' : $directory . '/') . $finalName;
         
@@ -250,15 +271,12 @@ class FileVaultController extends Controller
         $s3Client  = Storage::disk('s3')->getClient();
 
         try {
-            // Verify file exists in S3 before attempting rename
             if (!Storage::disk('s3')->exists($file->s3_key)) {
-                return response()->json(['error' => 'Source file not found in S3 at: ' . $file->s3_key], 404);
+                return response()->json(['error' => 'Source file not found in S3.'], 404);
             }
 
-            // Encode source path to handle spaces in legacy filenames
             $encodedSource = "{$bucket}/" . str_replace('%2F', '/', rawurlencode($file->s3_key));
 
-            // S3 requires Copy + Delete for renames
             $s3Client->copyObject([
                 'Bucket'            => $bucket,
                 'Key'               => $newS3Key,
@@ -279,9 +297,6 @@ class FileVaultController extends Controller
         }
     }
 
-    /**
-     * API endpoint to check if Glacier restoration has finished.
-     */
     public function pollStatus(Request $request)
     {
         $files = VaultFile::where('user_id', auth()->id())
@@ -301,7 +316,6 @@ class FileVaultController extends Controller
 
                 $restore = $headObject['Restore'] ?? null;
 
-                // If ongoing-request is false, the file is ready for download
                 if ($restore && str_contains($restore, 'ongoing-request="false"')) {
                     $file->update(['restoration_status' => 'restored']);
                     $updated[] = $file->id;
