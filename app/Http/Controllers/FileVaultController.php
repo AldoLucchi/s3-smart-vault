@@ -11,6 +11,9 @@ use Exception;
 
 class FileVaultController extends Controller
 {
+    /**
+     * Display the vault dashboard with filtering and sorting.
+     */
     public function index(Request $request)
     {
         $sort      = $request->get('sort', 'created_at');
@@ -29,9 +32,10 @@ class FileVaultController extends Controller
 
         $query->orderBy($sort, $direction);
 
+        // Calculate storage metrics
         $totalBytes = VaultFile::where('user_id', auth()->id())->sum('size');
         $totalMB    = round($totalBytes / 1024 / 1024, 2);
-        $limitMB    = 10240;
+        $limitMB    = 10240; // 10GB Limit
         $percentage = min(($totalMB / $limitMB) * 100, 100);
         $isFull     = $totalMB >= $limitMB;
         $barColor   = $percentage >= 90 ? 'bg-red-600' : 'bg-blue-600';
@@ -43,6 +47,9 @@ class FileVaultController extends Controller
         ));
     }
 
+    /**
+     * Upload a file and sanitize its name to avoid S3 URL issues.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -51,7 +58,13 @@ class FileVaultController extends Controller
 
         $file   = $request->file('vault_file');
         $userId = auth()->id();
-        $s3Key  = "vault/{$userId}/" . $file->getClientOriginalName();
+        
+        // Sanitize filename: replace spaces with hyphens and remove special chars
+        $extension = $file->getClientOriginalExtension();
+        $baseName  = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        $safeName  = $baseName . '.' . $extension;
+
+        $s3Key  = "vault/{$userId}/" . $safeName;
 
         try {
             Storage::disk('s3')->put($s3Key, file_get_contents($file), [
@@ -61,7 +74,7 @@ class FileVaultController extends Controller
 
             VaultFile::create([
                 'user_id'            => $userId,
-                'original_name'      => $file->getClientOriginalName(),
+                'original_name'      => $safeName,
                 's3_key'             => $s3Key,
                 'size'               => $file->getSize(),
                 'storage_class'      => 'STANDARD',
@@ -75,6 +88,9 @@ class FileVaultController extends Controller
         }
     }
 
+    /**
+     * Transition a file to AWS Glacier storage.
+     */
     public function freeze(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -88,10 +104,13 @@ class FileVaultController extends Controller
                 return back()->with('status', '❄️ This file is already frozen.');
             }
 
+            // CopySource must be URL encoded for S3 to find keys with special characters
+            $encodedSource = "{$bucketName}/" . str_replace('%2F', '/', rawurlencode($file->s3_key));
+
             $s3Client->copyObject([
                 'Bucket'            => $bucketName,
                 'Key'               => $file->s3_key,
-                'CopySource'        => "{$bucketName}/{$file->s3_key}",
+                'CopySource'        => $encodedSource,
                 'StorageClass'      => 'GLACIER',
                 'MetadataDirective' => 'COPY',
             ]);
@@ -107,6 +126,9 @@ class FileVaultController extends Controller
         }
     }
 
+    /**
+     * Request AWS to move file from Glacier to temporary Standard storage.
+     */
     public function requestRestoration(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -133,7 +155,7 @@ class FileVaultController extends Controller
 
             if ($restore && str_contains($restore, 'ongoing-request="false"')) {
                 $file->update(['restoration_status' => 'restored']);
-                return back()->with('status', '✅ File already restored! You can download it now.');
+                return back()->with('status', '✅ File already restored!');
             }
 
             $s3Client->restoreObject([
@@ -156,6 +178,9 @@ class FileVaultController extends Controller
         }
     }
 
+    /**
+     * Generate a temporary signed URL for file download.
+     */
     public function download(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -169,6 +194,9 @@ class FileVaultController extends Controller
         }
     }
 
+    /**
+     * Delete file from S3 and Database.
+     */
     public function destroy(Request $request)
     {
         $file = VaultFile::where('user_id', auth()->id())
@@ -183,67 +211,9 @@ class FileVaultController extends Controller
         }
     }
 
-    public function preview(Request $request)
-    {
-        $file = VaultFile::where('user_id', auth()->id())
-                         ->findOrFail($request->input('file_id'));
-
-        $url = Storage::disk('s3')->temporaryUrl($file->s3_key, now()->addMinutes(30));
-
-        return response()->json(['url' => $url, 'mime' => $file->mime_type]);
-    }
-
-    public function createShareLink(Request $request)
-    {
-        $request->validate([
-            'file_id' => 'required|integer',
-            'hours'   => 'sometimes|integer|min:1|max:168',
-        ]);
-
-        $file = VaultFile::where('user_id', auth()->id())
-                         ->findOrFail($request->input('file_id'));
-
-        $shareLink = ShareLink::create([
-            'vault_file_id' => $file->id,
-            'user_id'       => auth()->id(),
-            'token'         => Str::random(48),
-            'expires_at'    => now()->addHours($request->input('hours', 24)),
-        ]);
-
-        return response()->json(['link' => route('share.show', $shareLink->token)]);
-    }
-
-    public function revokeShareLink(Request $request)
-    {
-        $shareLink = ShareLink::where('user_id', auth()->id())
-                              ->findOrFail($request->input('link_id'));
-
-        $shareLink->update(['revoked_at' => now()]);
-
-        return response()->json(['success' => true]);
-    }
-
-    public function shareLinks(Request $request)
-    {
-        $file = VaultFile::where('user_id', auth()->id())
-                         ->findOrFail($request->input('file_id'));
-
-        $links = ShareLink::where('vault_file_id', $file->id)
-                          ->orderBy('created_at', 'desc')
-                          ->get()
-                          ->map(fn($link) => [
-                              'id'         => $link->id,
-                              'token'      => $link->token,
-                              'expires_at' => $link->expires_at->format('M d, Y H:i'),
-                              'expired'    => $link->isExpired(),
-                              'revoked'    => $link->isRevoked(),
-                              'valid'      => $link->isValid(),
-                              'url'        => route('share.show', $link->token),
-                          ]);
-
-        return response()->json(['links' => $links]);
-    }
-
+    /**
+     * Handle file renaming with S3 key synchronization.
+     */
     public function rename(Request $request)
     {
         $request->validate([
@@ -251,45 +221,52 @@ class FileVaultController extends Controller
             'new_name' => 'required|string|max:255',
         ]);
 
-        $file        = VaultFile::where('user_id', auth()->id())->findOrFail($request->input('file_id'));
-        $newName     = $request->input('new_name');
+        $file = VaultFile::where('user_id', auth()->id())->findOrFail($request->input('file_id'));
+        
+        // Clean new name: preserve extension and slugify the base name
         $originalExt = pathinfo($file->original_name, PATHINFO_EXTENSION);
-        $newExt      = pathinfo($newName, PATHINFO_EXTENSION);
+        $newNameClean = Str::slug(pathinfo($request->input('new_name'), PATHINFO_FILENAME));
+        $finalName = $newNameClean . '.' . $originalExt;
 
-        // Preserve original extension if user did not include one
-        if (!$newExt || strtolower($newExt) !== strtolower($originalExt)) {
-            $newName = $newName . '.' . $originalExt;
-        }
-
-        $userId    = auth()->id();
-        $newS3Key  = "vault/{$userId}/" . $newName;
-        $s3Client  = Storage::disk('s3')->getClient();
+        // Maintain the same directory (works for legacy 'vault/' and new 'vault/id/')
+        $directory = dirname($file->s3_key); 
+        $newS3Key  = $directory . '/' . $finalName;
+        
         $bucket    = config('filesystems.disks.s3.bucket');
+        $s3Client  = Storage::disk('s3')->getClient();
 
         try {
-            // Copy to new key
+            // Check if source exists to prevent NoSuchKey error
+            if (!Storage::disk('s3')->exists($file->s3_key)) {
+                return response()->json(['error' => 'Source file not found in S3.'], 404);
+            }
+
+            // CopySource requires proper URL encoding for keys with spaces/special characters
+            $encodedSource = "{$bucket}/" . str_replace('%2F', '/', rawurlencode($file->s3_key));
+
             $s3Client->copyObject([
                 'Bucket'            => $bucket,
                 'Key'               => $newS3Key,
-                'CopySource'        => "{$bucket}/{$file->s3_key}",
+                'CopySource'        => $encodedSource,
                 'MetadataDirective' => 'COPY',
             ]);
 
-            // Delete old key
             Storage::disk('s3')->delete($file->s3_key);
 
-            // Update database
             $file->update([
-                'original_name' => $newName,
+                'original_name' => $finalName,
                 's3_key'        => $newS3Key,
             ]);
 
-            return response()->json(['success' => true, 'new_name' => $newName]);
+            return response()->json(['success' => true, 'new_name' => $finalName]);
         } catch (Exception $e) {
             return response()->json(['error' => 'Rename error: ' . $e->getMessage()], 500);
         }
     }
 
+    /**
+     * Periodic check for restoration status (Polling).
+     */
     public function pollStatus(Request $request)
     {
         $files = VaultFile::where('user_id', auth()->id())
@@ -309,6 +286,7 @@ class FileVaultController extends Controller
 
                 $restore = $headObject['Restore'] ?? null;
 
+                // Check if AWS finished the restoration job
                 if ($restore && str_contains($restore, 'ongoing-request="false"')) {
                     $file->update(['restoration_status' => 'restored']);
                     $updated[] = $file->id;
